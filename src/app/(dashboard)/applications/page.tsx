@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CoverLetterModal } from "@/components/cover-letter-modal";
-import { generateMockApplications } from "@/lib/mock-data";
+import { supabase } from "@/lib/supabase";
 import { formatDate, getStatusColor } from "@/lib/utils";
 import type { Application } from "@/lib/types";
 import {
@@ -40,7 +40,29 @@ export default function ApplicationsPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
-    setApplications(generateMockApplications(40));
+    async function fetchApplications() {
+      const { data, error } = await supabase
+        .from("applications")
+        .select("*")
+        .order("created_at", { ascending: false });
+        
+      if (data && !error) {
+        const mappedData = data.map((row) => ({
+          id: row.id.toString(),
+          uid: row.user_id || "anonymous",
+          company: row.company_name || "Unknown Company",
+          role: row.job_title || "Unknown Role",
+          platform: "linkedin" as const,
+          appliedAt: row.created_at || new Date().toISOString(),
+          status: "Applied" as const,
+          resumeUrl: null,
+          jobDescription: "",
+          coverLetter: row.cover_letter || "No cover letter generated.",
+        }));
+        setApplications(mappedData);
+      }
+    }
+    fetchApplications();
   }, []);
 
   useEffect(() => {

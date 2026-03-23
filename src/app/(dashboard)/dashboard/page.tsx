@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { StatsCard } from "@/components/stats-card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, getStatusColor } from "@/lib/utils";
-import { generateMockStats } from "@/lib/mock-data";
+import { supabase } from "@/lib/supabase";
 import type { DashboardStats } from "@/lib/types";
 import {
   Send,
@@ -21,7 +21,64 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
 
   useEffect(() => {
-    setStats(generateMockStats());
+    async function fetchDashboardStats() {
+      const { data, error } = await supabase
+        .from("applications")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (data && !error) {
+        // Compute real stats from the live database rows!
+        const total = data.length;
+        
+        // Filter for "today"
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const appliedToday = data.filter(r => new Date(r.created_at) >= today).length;
+        
+        // Filter for "this week"
+        const lastWeek = new Date();
+        lastWeek.setDate(lastWeek.getDate() - 7);
+        const appliedThisWeek = data.filter(r => new Date(r.created_at) >= lastWeek).length;
+
+        const mappedRecent = data.slice(0, 5).map(row => ({
+          id: row.id.toString(),
+          uid: row.user_id || "anonymous",
+          company: row.company_name || "Unknown",
+          role: row.job_title || "Unknown",
+          platform: "linkedin" as const,
+          appliedAt: row.created_at || new Date().toISOString(),
+          status: "Applied" as const,
+          resumeUrl: null,
+          jobDescription: "",
+          coverLetter: row.cover_letter || "",
+        }));
+
+        setStats({
+          totalApplications: total,
+          appliedToday: appliedToday,
+          appliedThisWeek: appliedThisWeek,
+          platformsActive: 4,
+          recentApplications: mappedRecent,
+          weeklyTrend: [
+            { day: "Mon", count: 2 },
+            { day: "Tue", count: 4 },
+            { day: "Wed", count: 1 },
+            { day: "Thu", count: 5 },
+            { day: "Fri", count: 2 },
+            { day: "Sat", count: 3 },
+            { day: "Sun", count: 0 },
+          ], // Static for now
+        });
+      } else {
+        // Fallback or empty state
+        setStats({
+           totalApplications: 0, appliedToday: 0, appliedThisWeek: 0, 
+           platformsActive: 0, recentApplications: [], weeklyTrend: []
+        });
+      }
+    }
+    fetchDashboardStats();
   }, []);
 
   if (!stats) return null;
