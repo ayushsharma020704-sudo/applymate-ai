@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Dancing_Script } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({
+const cursive = Dancing_Script({
   subsets: ["latin"],
   variable: "--font-sans",
 });
@@ -22,8 +22,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans antialiased`}>
+    <html lang="en">
+      <body className={`${cursive.variable} font-sans antialiased bg-white text-slate-900`}>
         <AuthProvider>
           {children}
           <Toaster richColors position="top-right" />

@@ -1,0 +1,163 @@
+{
+  "name": "ApplyMate AI - Daily Job Hunter (Perfect Phase 3)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "trigger-agent",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Next.js Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "trigger-agent"
+    },
+    {
+      "parameters": {
+        "url": "https://jsearch.p.rapidapi.com/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "jsearch.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "bfd512dd38mshce2e6e302d7df29p122c32jsn00d79528f258"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "Frontend Developer Intern"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            },
+            {
+              "name": "num_pages",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Fetch Live Jobs (JSearch)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "models/gemini-2.5-flash",
+        "options": {},
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Write a short professional 3-sentence cover letter for a {{ $json.job_title }} role at {{ $json.employer_name }}"
+            }
+          ]
+        }
+      },
+      "name": "Message a model",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "applications",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "job_title": "={{ $('Split Out').item.json.job_title }}",
+            "company_name": "={{ $('Split Out').item.json.employer_name }}",
+            "cover_letter": "={{ $json.message.content }}"
+          }
+        },
+        "options": {}
+      },
+      "name": "Create a row",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        880,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Next.js Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Live Jobs (JSearch)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Live Jobs (JSearch)": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

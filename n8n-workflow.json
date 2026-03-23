@@ -1,0 +1,84 @@
+{
+  "name": "ApplyMate AI - Daily Job Hunter (Gemini Version)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "trigger-agent",
+        "options": {}
+      },
+      "name": "Next.js Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "applymate-webhook-uuid"
+    },
+    {
+      "parameters": {
+        "url": "https://dummyjson.com/products/1",
+        "options": {}
+      },
+      "name": "Fetch Jobs (Mock API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "operation": "generateText",
+        "model": "gemini-1.5-flash",
+        "prompt": "Write a 3-sentence cover letter for a React Developer position.",
+        "options": {}
+      },
+      "name": "Google Gemini (Cover Letter)",
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "applications"
+      },
+      "name": "Save to Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Next.js Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Jobs (Mock API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Jobs (Mock API)": {
+      "main": [
+        [
+          {
+            "node": "Google Gemini (Cover Letter)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini (Cover Letter)": {
+      "main": [
+        [
+          {
+            "node": "Save to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

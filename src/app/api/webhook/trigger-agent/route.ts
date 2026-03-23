@@ -22,33 +22,49 @@ export async function POST(request: NextRequest) {
       jobTypes?: string[];
     };
 
-    // In production: This endpoint would trigger your automation agent
-    // Options include:
-    // 1. Call an external job aggregator API
-    // 2. Trigger an n8n/Make webhook for browser automation
-    // 3. Run a serverless function that scrapes job listings
-    // 4. Interface with an AI agent that manages applications
+    const n8nUrl = process.env.N8N_WEBHOOK_URL;
+    
+    // Fallback to mock behavior if n8n is not configured yet
+    if (!n8nUrl) {
+      console.warn("N8N_WEBHOOK_URL is not set. Running in Mock Mode.");
+      return NextResponse.json({
+        success: true,
+        message: "Agent triggered in mock mode (n8n URL not configured).",
+        timestamp: new Date().toISOString()
+      });
+    }
 
-    // Demo response showing what the agent would do
-    const agentResponse = {
-      success: true,
-      timestamp: new Date().toISOString(),
-      agent: {
-        status: "completed",
-        jobsFound: Math.floor(Math.random() * 20) + 5,
-        jobsMatched: Math.floor(Math.random() * 10) + 2,
-        applicationsQueued: Math.floor(Math.random() * 5) + 1,
-      },
-      config: {
-        platforms: platforms || ["linkedin", "internshala", "wellfound", "unstop"],
-        keywords: keywords || ["React", "Full Stack", "Frontend"],
-        jobTypes: jobTypes || ["full-time", "internship"],
-      },
-      message:
-        "Agent scan completed. Matching jobs have been queued for application.",
-    };
+    console.log(`Triggering n8n workflow at ${n8nUrl}...`);
+    
+    try {
+      // Send the payload to the local n8n instance
+      const n8nResponse = await fetch(n8nUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platforms: platforms || ["linkedin", "internshala", "wellfound"],
+          keywords: keywords || ["React", "Full Stack", "Frontend"],
+          jobTypes: jobTypes || ["full-time", "internship"]
+        }),
+      });
 
-    return NextResponse.json(agentResponse);
+      if (!n8nResponse.ok) {
+        throw new Error(`n8n responded with status: ${n8nResponse.status}`);
+      }
+      
+      return NextResponse.json({
+        success: true,
+        message: "Successfully triggered n8n automation agent.",
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (n8nError) {
+      console.error("Failed to reach n8n webhook:", n8nError);
+      return NextResponse.json(
+        { error: "Could not reach the local n8n instance. Is it running?" },
+        { status: 502 }
+      );
+    }
   } catch (error) {
     console.error("Error triggering agent:", error);
     return NextResponse.json(
